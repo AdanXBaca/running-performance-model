@@ -17,6 +17,15 @@ cadence: >= 160 spm
 distance >= 4 miles
 '''
 
+root_dir = "data/raw"
+fields = ['start_time', 'sport', 'sub_sport', 'total_distance','total_timer_time',
+          'total_elapsed_time','avg_heart_rate','max_heart_rate','avg_running_cadence',
+          'avg_fractional_cadence','total_ascent', 'file_path']
+
+# filtering runs based on determined threshold
+distance_thresh = 6437.376 # 4 miles
+cadence_thresh = 160
+
 def load_activity(file_path, fields): 
     file_path = str(file_path)
     fit = FitFile(file_path)
@@ -25,7 +34,10 @@ def load_activity(file_path, fields):
     if msg.get_value('type') != 'activity':
         return None
         
-    values = {field.name: field.value for field in next(fit.get_messages("session")) if field.name in fields}
+    values = {field.name: field.value for field in next(fit.get_messages("session"))
+              if field.name in fields}
+    
+    values['file_path'] = file_path
     return values
     
 def build_session_table(root_dir, fields):
@@ -49,7 +61,9 @@ def filter_running(run_df):
     return run_df[run_df['sport'] == 'running']
 
 def compute_running_metrics(runs_subset):
-    true_cadence = (runs_subset['avg_running_cadence'] + runs_subset['avg_fractional_cadence']) * 2
+    true_cadence = (runs_subset['avg_running_cadence'] 
+                    + runs_subset['avg_fractional_cadence']) * 2
+    
     pace = (runs_subset['total_distance']) / (runs_subset['total_timer_time'])
     return true_cadence, pace
 
@@ -83,11 +97,6 @@ def plot_distributions(true_cadence, pace):
     plt.show()
     
 def main():
-    root_dir = "data/raw"
-    fields = ['start_time', 'sport', 'sub_sport', 'total_distance','total_timer_time','total_elapsed_time','avg_heart_rate','max_heart_rate','avg_running_cadence','avg_fractional_cadence','total_ascent']
-    # filtering runs based on determined threshold
-    distance_thresh = 6437.376 # 4 miles
-    cadence_thresh = 160
     
     run_df = build_session_table(root_dir, fields)
     runs_subset = filter_running(run_df)
